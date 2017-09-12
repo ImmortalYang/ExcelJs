@@ -10397,6 +10397,9 @@ var Sheet = function () {
 				return args.reduce(function (a, b) {
 					return a > b ? a : b;
 				});
+			},
+			'POW': function POW(args) {
+				return Math.pow(args[0], args[1]);
 			}
 		};
 		this.refresh();
@@ -10484,12 +10487,11 @@ var Sheet = function () {
 						return this.operations[func](fullArgs);
 					}
 				} else {
-					return NaN;
+					args = str.substr(4, str.length - 5).split(',').map(function (str) {
+						return _this2.parse(str);
+					});
+					return this.operations[func](args);
 				}
-				args = str.substr(4, str.length - 5).split(',').map(function (str) {
-					return _this2.parse(str);
-				});
-				return this.operations[func](args);
 			}
 			// Find operator position
 			var operatorIndex = strArr.findIndex(this.isBinaryOperator);
@@ -10546,7 +10548,9 @@ var Sheet = function () {
 		key: 'isFunction',
 		value: function isFunction(str) {
 			if (!isNaN(str)) return false;
-			return (str.substr(0, 3) == 'SUM' || str.substr(0, 3) == 'AVG') && str.substr(3, 1) == '(' && str.substr(str.length - 1) == ')';
+			// Assume function names are always 3 characters
+			var funcName = str.substr(0, 3);
+			return (funcName == 'SUM' || funcName == 'AVG' || funcName == 'MIN' || funcName == 'MAX' || funcName == 'POW') && str.substr(3, 1) == '(' && str.substr(str.length - 1) == ')';
 		}
 
 		// Get the column number from column string e.g. AA
@@ -10683,23 +10687,9 @@ var Cell = function () {
 		key: 'reCalc',
 		value: function reCalc() {
 			if (this.formula) {
-				this.calcEv = new CustomEvent('calc', {
-					detail: {
-						expr: this.formula,
-						row: this.row,
-						col: this.col
-					},
-					cancelable: true
-				});
-				this.el[0].dispatchEvent(this.calcEv);
-
+				this.onCalculate();
 				this.input.val(this.data);
-
-				this.dataChangedEv = new CustomEvent('dataChanged', {
-					detail: {},
-					cancelable: true
-				});
-				this.el[0].dispatchEvent(this.dataChangedEv);
+				this.onDataChanged();
 			}
 		}
 
@@ -10714,20 +10704,37 @@ var Cell = function () {
 			// Deal with formulae
 			if (this.data.charAt(0) == '=') {
 				this.formula = this.data;
-				// Custome event calc, with argument expression
-				this.calcEv = new CustomEvent('calc', {
-					detail: {
-						expr: this.data,
-						row: this.row,
-						col: this.col
-					},
-					cancelable: true
-				});
-				this.el[0].dispatchEvent(this.calcEv);
+				// Raise the calc event
+				this.onCalculate();
 			} else {
 				this.formula = null;
 			}
 			// Rising event to notify subscriber cell(s)
+			this.onDataChanged();
+		}
+
+		// calc Event dispatch
+
+	}, {
+		key: 'onCalculate',
+		value: function onCalculate() {
+			// Custome event calc, with argument expression
+			this.calcEv = new CustomEvent('calc', {
+				detail: {
+					expr: this.data,
+					row: this.row,
+					col: this.col
+				},
+				cancelable: true
+			});
+			this.el[0].dispatchEvent(this.calcEv);
+		}
+
+		// dataChanged Event dispatch
+
+	}, {
+		key: 'onDataChanged',
+		value: function onDataChanged() {
 			this.dataChangedEv = new CustomEvent('dataChanged', {
 				detail: {},
 				cancelable: true

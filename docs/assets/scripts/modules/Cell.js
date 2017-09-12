@@ -8,6 +8,26 @@ class Cell{
 		this.col = col;
 		this.data = 0;
 		this.formula = null;
+		// Custome event calc, with argument expression
+		this.calcEv = new CustomEvent(
+			'calc', 
+			{
+				detail: {
+					expr: this.formula, 
+					row: this.row, 
+					col: this.col,
+				},
+				cancelable: true,
+			});
+		// Raised when data has been changed in this cell
+		this.dataChangedEv = new CustomEvent(
+			'dataChanged',
+			{
+				detail: {
+
+				},
+				cancelable: true,
+			});
 		// Add header text
 		if(col == 0){
 			this.el.html(row);
@@ -80,14 +100,6 @@ class Cell{
 
 	// dataChanged Event dispatch
 	onDataChanged(){
-		this.dataChangedEv = new CustomEvent(
-			'dataChanged',
-			{
-				detail: {
-
-				},
-				cancelable: true,
-			});
 		this.el[0].dispatchEvent(this.dataChangedEv);
 	}
 

@@ -18,6 +18,7 @@ class Sheet{
 			'AVG': (args) => (args.reduce((a, b) => a + b, 0)) / args.length,
 			'MIN': (args) => args.reduce((a, b) => a < b ? a : b),
 			'MAX': (args) => args.reduce((a, b) => a > b ? a : b),
+			'POW': (args) => Math.pow(args[0], args[1]),
 		}
 		this.refresh();
 		this.events();
@@ -87,10 +88,9 @@ class Sheet{
 				}
 			}
 			else{
-				return NaN;
+				args = str.substr(4, str.length - 5).split(',').map((str) => this.parse(str));
+				return this.operations[func](args);
 			}
-			args = str.substr(4, str.length - 5).split(',').map((str) => this.parse(str));
-			return this.operations[func](args);
 		}
 		// Find operator position
 		let operatorIndex = strArr.findIndex(this.isBinaryOperator);
@@ -143,7 +143,9 @@ class Sheet{
 	isFunction(str){
 		if(!isNaN(str))
 			return false;
-		return (str.substr(0, 3) == 'SUM' || str.substr(0, 3) == 'AVG') 
+		// Assume function names are always 3 characters
+		var funcName = str.substr(0,3);
+		return (funcName == 'SUM' || funcName == 'AVG' || funcName == 'MIN' || funcName == 'MAX' || funcName == 'POW') 
 				&& str.substr(3, 1) == '(' && str.substr(str.length - 1) == ')';
 	}
 

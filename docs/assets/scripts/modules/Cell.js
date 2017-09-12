@@ -48,7 +48,7 @@ class Cell{
 					},
 					cancelable: true,
 				});
-			this.el[0].dispatchEvent(this.calcEv);
+			this.el[0].dispatchEvent(this.calcEv).promise();
 
 			this.input.val(this.data);
 

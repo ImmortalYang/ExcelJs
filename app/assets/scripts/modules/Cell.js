@@ -38,29 +38,9 @@ class Cell{
 
 	reCalc(){
 		if(this.formula){
-			this.calcEv = new CustomEvent(
-				'calc', 
-				{
-					detail: {
-						expr: this.formula, 
-						row: this.row, 
-						col: this.col,
-					},
-					cancelable: true,
-				});
-			this.el[0].dispatchEvent(this.calcEv);
-
+			this.onCalculate();
 			this.input.val(this.data);
-
-			this.dataChangedEv = new CustomEvent(
-			'dataChanged',
-			{
-				detail: {
-
-				},
-				cancelable: true,
-			});
-			this.el[0].dispatchEvent(this.dataChangedEv);
+			this.onDataChanged();
 		}
 	}
 
@@ -72,23 +52,34 @@ class Cell{
 		// Deal with formulae
 		if(this.data.charAt(0) == '='){
 			this.formula = this.data;
-			// Custome event calc, with argument expression
-			this.calcEv = new CustomEvent(
-				'calc', 
-				{
-					detail: {
-						expr: this.data, 
-						row: this.row, 
-						col: this.col,
-					},
-					cancelable: true,
-				});
-			this.el[0].dispatchEvent(this.calcEv);
+			// Raise the calc event
+			this.onCalculate();
 		}
 		else{
 			this.formula = null;
 		}
 		// Rising event to notify subscriber cell(s)
+		this.onDataChanged();
+	}
+
+	// calc Event dispatch
+	onCalculate(){
+		// Custome event calc, with argument expression
+		this.calcEv = new CustomEvent(
+			'calc', 
+			{
+				detail: {
+					expr: this.data, 
+					row: this.row, 
+					col: this.col,
+				},
+				cancelable: true,
+			});
+		this.el[0].dispatchEvent(this.calcEv);
+	}
+
+	// dataChanged Event dispatch
+	onDataChanged(){
 		this.dataChangedEv = new CustomEvent(
 			'dataChanged',
 			{

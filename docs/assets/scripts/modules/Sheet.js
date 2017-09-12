@@ -50,7 +50,6 @@ class Sheet{
 	}
 
 	dataChangedEventHandler(e){
-		console.log(this.currentCell);
 		this.cells[this.currentCell.row][this.currentCell.col].reCalc();
 	}
 
@@ -59,7 +58,6 @@ class Sheet{
 		if(!Array.isArray(str)){
 			var strArr = Array.from(str);
 		}
-		console.log(str);
 		// Function operation
 		if(this.isFunction(str)){
 			// Range operation
@@ -88,8 +86,16 @@ class Sheet{
 				}
 			}
 			else{
-				args = str.substr(4, str.length - 5).split(',').map((str) => this.parse(str));
-				return this.operations[func](args);
+				args = str.substr(4, str.length - 5).split(',');
+				args.forEach((str) => {
+					console.log(str);
+					let row = this.getRowNo(str);
+					let col = this.getColNo(str);
+					console.log(col);
+					this.cells[row][col].el[0].addEventListener('dataChanged', (e) => this.dataChangedEventHandler(e));
+				});
+				let fullArgs = args.map((str) => this.parse(str));
+				return this.operations[func](fullArgs);
 			}
 		}
 		// Find operator position

@@ -69,7 +69,7 @@ class Cell{
 			'calc', 
 			{
 				detail: {
-					expr: this.data, 
+					expr: this.formula, 
 					row: this.row, 
 					col: this.col,
 				},

@@ -10442,7 +10442,6 @@ var Sheet = function () {
 	}, {
 		key: 'dataChangedEventHandler',
 		value: function dataChangedEventHandler(e) {
-			console.log(this.currentCell);
 			this.cells[this.currentCell.row][this.currentCell.col].reCalc();
 		}
 
@@ -10456,7 +10455,6 @@ var Sheet = function () {
 			if (!Array.isArray(str)) {
 				var strArr = Array.from(str);
 			}
-			console.log(str);
 			// Function operation
 			if (this.isFunction(str)) {
 				// Range operation
@@ -10487,10 +10485,20 @@ var Sheet = function () {
 						return this.operations[func](fullArgs);
 					}
 				} else {
-					args = str.substr(4, str.length - 5).split(',').map(function (str) {
+					args = str.substr(4, str.length - 5).split(',');
+					args.forEach(function (str) {
+						console.log(str);
+						var row = _this2.getRowNo(str);
+						var col = _this2.getColNo(str);
+						console.log(col);
+						_this2.cells[row][col].el[0].addEventListener('dataChanged', function (e) {
+							return _this2.dataChangedEventHandler(e);
+						});
+					});
+					var _fullArgs = args.map(function (str) {
 						return _this2.parse(str);
 					});
-					return this.operations[func](args);
+					return this.operations[func](_fullArgs);
 				}
 			}
 			// Find operator position
@@ -10721,7 +10729,7 @@ var Cell = function () {
 			// Custome event calc, with argument expression
 			this.calcEv = new CustomEvent('calc', {
 				detail: {
-					expr: this.data,
+					expr: this.formula,
 					row: this.row,
 					col: this.col
 				},

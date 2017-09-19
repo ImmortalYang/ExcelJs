@@ -19,3 +19,23 @@ input{
 	padding: 0;
 	text-align: center;
 }
+
+td.bold input{
+	font-weight: 900;
+}
+
+td.italic input{
+	font-style: italic;
+}
+
+td.underline input{
+	text-decoration: underline;
+}
+
+input.highlight.blue{
+	background-color: blue;
+}
+
+input.highlight.orange{
+	background-color: orange;
+}

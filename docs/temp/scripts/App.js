@@ -10337,6 +10337,8 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _jquery = __webpack_require__(0);
@@ -10426,6 +10428,10 @@ var Sheet = function () {
 						cell.el[0].addEventListener('calc', function (e) {
 							return _this.calcEventHandler(e);
 						});
+						cell.el[0].addEventListener('cellClicked', function (e) {
+							return _this.cellClickEventHandler(e);
+						});
+
 						this.cells[i][j] = cell;
 					}
 					(0, _jquery2.default)(row).append(this.cells[i][j].el);
@@ -10434,22 +10440,44 @@ var Sheet = function () {
 			}
 		}
 	}, {
+		key: 'changeFont',
+		value: function changeFont(fontName) {
+			if (this.currentCell) {
+				this.currentCell.el.toggleClass(fontName);
+				// if(fontName === 'highlight'){
+				// 	if(this.currentCell.formula){
+				// 		this.currentCell.el.toggleClass('orange');
+				// 	}
+				// 	else{
+				// 		this.currentCell.el.toggleClass('blue');
+				// 	}
+				// }
+			}
+		}
+	}, {
 		key: 'calcEventHandler',
 		value: function calcEventHandler(e) {
 			this.currentCell = this.cells[e.detail.row][e.detail.col];
-			this.currentCell.data = this.parse(e.detail.expr.substr(1));
+			this.currentCell.data = this.parse(e.detail.expr.substr(1), e.detail.addListner);
 		}
 	}, {
 		key: 'dataChangedEventHandler',
-		value: function dataChangedEventHandler(e) {
-			this.cells[this.currentCell.row][this.currentCell.col].reCalc();
+		value: function dataChangedEventHandler(e, row, col) {
+			console.log(row);
+			console.log(col);
+			this.cells[row][col].reCalc();
+		}
+	}, {
+		key: 'cellClickEventHandler',
+		value: function cellClickEventHandler(e) {
+			this.currentCell = this.cells[e.detail.row][e.detail.col];
 		}
 
 		// Parse a string expression and return the calculated result
 
 	}, {
 		key: 'parse',
-		value: function parse(str) {
+		value: function parse(str, addListner) {
 			var _this2 = this;
 
 			if (!Array.isArray(str)) {
@@ -10461,44 +10489,61 @@ var Sheet = function () {
 				var args = str.substr(4, str.length - 5).split(':');
 				var func = str.substr(0, 3);
 				if (args.length == 2) {
-					var row1 = this.getRowNo(args[0]);
-					var row2 = this.getRowNo(args[1]);
-					var col1 = this.getColNo(args[0]);
-					var col2 = this.getColNo(args[1]);
+					var _ret = function () {
+						var row1 = _this2.getRowNo(args[0]);
+						var row2 = _this2.getRowNo(args[1]);
+						var col1 = _this2.getColNo(args[0]);
+						var col2 = _this2.getColNo(args[1]);
 
-					var fullArgs = new Array();
-					if (row1 == row2) {
-						for (var j = Math.min(col1, col2); j <= Math.max(col1, col2); j++) {
-							fullArgs.push(parseFloat(this.cells[row1][j].data));
-							this.cells[row1][j].el[0].addEventListener('dataChanged', function (e) {
-								return _this2.dataChangedEventHandler(e);
-							});
+						var fullArgs = new Array();
+						var cellToBeCaptured = _this2.currentCell;
+
+						if (row1 == row2) {
+							for (var j = Math.min(col1, col2); j <= Math.max(col1, col2); j++) {
+								fullArgs.push(parseFloat(_this2.cells[row1][j].data));
+								if (addListner) {
+									//this.cells[row1][j].el[0].removeEventListener('dataChanged', (e) => this.dataChangedEventHandler(e, cellToBeCaptured.row, cellToBeCaptured.col));
+									_this2.cells[row1][j].el[0].addEventListener('dataChanged', function (e) {
+										return _this2.dataChangedEventHandler(e, cellToBeCaptured.row, cellToBeCaptured.col);
+									}, {
+										once: true
+									});
+								}
+							}
+							return {
+								v: _this2.operations[func](fullArgs)
+							};
+						} else if (col1 == col2) {
+							for (var i = Math.min(row1, row2); i <= Math.max(row1, row2); i++) {
+								fullArgs.push(parseFloat(_this2.cells[i][col1].data));
+								if (addListner) {
+									_this2.cells[i][col1].el[0].addEventListener('dataChanged', function (e) {
+										return _this2.dataChangedEventHandler(e, cellToBeCaptured.row, cellToBeCaptured.col);
+									}, {
+										once: true
+									});
+								}
+							}
+							return {
+								v: _this2.operations[func](fullArgs)
+							};
 						}
-						return this.operations[func](fullArgs);
-					} else if (col1 == col2) {
-						for (var i = Math.min(row1, row2); i <= Math.max(row1, row2); i++) {
-							fullArgs.push(parseFloat(this.cells[i][col1].data));
-							this.cells[i][col1].el[0].addEventListener('dataChanged', function (e) {
-								return _this2.dataChangedEventHandler(e);
-							});
-						}
-						return this.operations[func](fullArgs);
-					}
+					}();
+
+					if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
 				} else {
 					args = str.substr(4, str.length - 5).split(',');
 					args.forEach(function (str) {
-						console.log(str);
 						var row = _this2.getRowNo(str);
 						var col = _this2.getColNo(str);
-						console.log(col);
 						_this2.cells[row][col].el[0].addEventListener('dataChanged', function (e) {
 							return _this2.dataChangedEventHandler(e);
 						});
 					});
-					var _fullArgs = args.map(function (str) {
+					var fullArgs = args.map(function (str) {
 						return _this2.parse(str);
 					});
-					return this.operations[func](_fullArgs);
+					return this.operations[func](fullArgs);
 				}
 			}
 			// Find operator position
@@ -10629,6 +10674,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 		sheet.refresh();
 		(0, _jquery2.default)('.root').append(sheet.el);
 	});
+
+	(0, _jquery2.default)('.changeFont').click(function () {
+		sheet.changeFont((0, _jquery2.default)(this).attr('id'));
+	});
 });
 
 /***/ }),
@@ -10676,6 +10725,13 @@ var Cell = function () {
 			detail: {},
 			cancelable: true
 		});
+
+		this.clickEv = new CustomEvent('cellClicked', {
+			detail: {
+				row: this.row,
+				col: this.col
+			}
+		});
 		// Add header text
 		if (col == 0) {
 			this.el.html(row);
@@ -10697,11 +10753,20 @@ var Cell = function () {
 
 			if (this.input) {
 				this.input.focusout(function () {
-					_this.processData();
+					_this.input.removeClass('highlight');
+					_this.processData(true);
 					_this.input.val(_this.data);
 				});
 				this.input.focus(function () {
-					if (_this.formula) _this.input.val(_this.formula);
+					if (_this.formula) {
+						_this.input.addClass('highlight orange');
+						_this.input.val(_this.formula);
+					} else {
+						_this.input.addClass('highlight blue');
+					}
+				});
+				this.input.click(function () {
+					_this.onClick();
 				});
 			}
 		}
@@ -10721,13 +10786,13 @@ var Cell = function () {
 
 	}, {
 		key: 'processData',
-		value: function processData() {
+		value: function processData(addListner) {
 			this.data = this.input.val();
 			// Deal with formulae
 			if (this.data.charAt(0) == '=') {
 				this.formula = this.data;
 				// Raise the calc event
-				this.onCalculate();
+				this.onCalculate(addListner);
 			} else {
 				this.formula = null;
 			}
@@ -10739,13 +10804,14 @@ var Cell = function () {
 
 	}, {
 		key: 'onCalculate',
-		value: function onCalculate() {
+		value: function onCalculate(addListner) {
 			// Custome event calc, with argument expression
 			this.calcEv = new CustomEvent('calc', {
 				detail: {
 					expr: this.formula,
 					row: this.row,
-					col: this.col
+					col: this.col,
+					addListner: addListner
 				},
 				cancelable: true
 			});
@@ -10758,6 +10824,17 @@ var Cell = function () {
 		key: 'onDataChanged',
 		value: function onDataChanged() {
 			this.el[0].dispatchEvent(this.dataChangedEv);
+		}
+	}, {
+		key: 'onClick',
+		value: function onClick() {
+			this.clickEv = new CustomEvent('cellClicked', {
+				detail: {
+					row: this.row,
+					col: this.col
+				}
+			});
+			this.el[0].dispatchEvent(this.clickEv);
 		}
 
 		/*

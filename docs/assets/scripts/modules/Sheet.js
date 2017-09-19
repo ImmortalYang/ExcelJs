@@ -36,6 +36,8 @@ class Sheet{
 				if(!this.cells[i][j]){
 					let cell = new Cell(i, j, cell);
 					cell.el[0].addEventListener('calc', (e) => this.calcEventHandler(e));
+					cell.el[0].addEventListener('cellClicked', (e) => this.cellClickEventHandler(e));
+
 					this.cells[i][j] = cell;
 				}
 				$(row).append((this.cells[i][j]).el);	
@@ -44,17 +46,37 @@ class Sheet{
 		}
 	}
 
-	calcEventHandler(e){
-		this.currentCell = this.cells[e.detail.row][e.detail.col];
-		this.currentCell.data = this.parse(e.detail.expr.substr(1));
+	changeFont(fontName){
+		if(this.currentCell){
+			this.currentCell.el.toggleClass(fontName);
+			// if(fontName === 'highlight'){
+			// 	if(this.currentCell.formula){
+			// 		this.currentCell.el.toggleClass('orange');
+			// 	}
+			// 	else{
+			// 		this.currentCell.el.toggleClass('blue');
+			// 	}
+			// }
+		}
 	}
 
-	dataChangedEventHandler(e){
-		this.cells[this.currentCell.row][this.currentCell.col].reCalc();
+	calcEventHandler(e){
+		this.currentCell = this.cells[e.detail.row][e.detail.col];
+		this.currentCell.data = this.parse(e.detail.expr.substr(1), e.detail.addListner);
+	}
+
+	dataChangedEventHandler(e, row, col){
+		console.log(row);
+		console.log(col);
+		this.cells[row][col].reCalc();
+	}
+
+	cellClickEventHandler(e){
+		this.currentCell = this.cells[e.detail.row][e.detail.col];
 	}
 
 	// Parse a string expression and return the calculated result
-	parse(str){
+	parse(str, addListner){
 		if(!Array.isArray(str)){
 			var strArr = Array.from(str);
 		}
@@ -70,17 +92,34 @@ class Sheet{
 				let col2 = this.getColNo(args[1]);
 				
 				let fullArgs = new Array();
+				let cellToBeCaptured = this.currentCell;
+
 				if(row1 == row2){
 					for(let j = Math.min(col1, col2); j <= Math.max(col1, col2); j++){
 						fullArgs.push(parseFloat(this.cells[row1][j].data));
-						this.cells[row1][j].el[0].addEventListener('dataChanged', (e) => this.dataChangedEventHandler(e));
+						if(addListner){
+							//this.cells[row1][j].el[0].removeEventListener('dataChanged', (e) => this.dataChangedEventHandler(e, cellToBeCaptured.row, cellToBeCaptured.col));
+							this.cells[row1][j].el[0].addEventListener('dataChanged', 
+								(e) => this.dataChangedEventHandler(e, cellToBeCaptured.row, cellToBeCaptured.col),
+								{
+									once: true,
+								}
+							);
+						}
 					}
 					return this.operations[func](fullArgs);
 				}
 				else if(col1 == col2){
 					for(let i = Math.min(row1, row2); i <= Math.max(row1, row2); i++){
 						fullArgs.push(parseFloat(this.cells[i][col1].data));
-						this.cells[i][col1].el[0].addEventListener('dataChanged', (e) => this.dataChangedEventHandler(e));
+						if(addListner){
+							this.cells[i][col1].el[0].addEventListener('dataChanged', 
+								(e) => this.dataChangedEventHandler(e, cellToBeCaptured.row, cellToBeCaptured.col),
+								{
+									once: true,
+								}
+							);
+						}
 					}
 					return this.operations[func](fullArgs);
 				}
@@ -88,10 +127,8 @@ class Sheet{
 			else{
 				args = str.substr(4, str.length - 5).split(',');
 				args.forEach((str) => {
-					console.log(str);
 					let row = this.getRowNo(str);
 					let col = this.getColNo(str);
-					console.log(col);
 					this.cells[row][col].el[0].addEventListener('dataChanged', (e) => this.dataChangedEventHandler(e));
 				});
 				let fullArgs = args.map((str) => this.parse(str));

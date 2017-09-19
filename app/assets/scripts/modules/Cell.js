@@ -28,6 +28,15 @@ class Cell{
 				},
 				cancelable: true,
 			});
+
+		this.clickEv = new CustomEvent(
+			'cellClicked',
+			{
+				detail: {
+					row: this.row,
+					col: this.col,
+				}
+			});
 		// Add header text
 		if(col == 0){
 			this.el.html(row);
@@ -46,12 +55,21 @@ class Cell{
 	events(){
 		if(this.input){
 			this.input.focusout(() => {
-				this.processData();
+				this.input.removeClass('highlight');
+				this.processData(true);
 				this.input.val(this.data);
 			});
 			this.input.focus(() => {
-				if(this.formula)
+				if(this.formula){
+					this.input.addClass('highlight orange');
 					this.input.val(this.formula);
+				}
+				else{
+					this.input.addClass('highlight blue');
+				}
+			});
+			this.input.click(() => {
+				this.onClick();
 			});
 		}
 	}
@@ -67,13 +85,13 @@ class Cell{
 	/*
 		Process the cell data
 	*/
-	processData(){
+	processData(addListner){
 		this.data = this.input.val();
 		// Deal with formulae
 		if(this.data.charAt(0) == '='){
 			this.formula = this.data;
 			// Raise the calc event
-			this.onCalculate();
+			this.onCalculate(addListner);
 		}
 		else{
 			this.formula = null;
@@ -83,7 +101,7 @@ class Cell{
 	}
 
 	// calc Event dispatch
-	onCalculate(){
+	onCalculate(addListner){
 		// Custome event calc, with argument expression
 		this.calcEv = new CustomEvent(
 			'calc', 
@@ -92,6 +110,7 @@ class Cell{
 					expr: this.formula, 
 					row: this.row, 
 					col: this.col,
+					addListner: addListner,
 				},
 				cancelable: true,
 			});
@@ -101,6 +120,18 @@ class Cell{
 	// dataChanged Event dispatch
 	onDataChanged(){
 		this.el[0].dispatchEvent(this.dataChangedEv);
+	}
+
+	onClick(){
+		this.clickEv = new CustomEvent(
+			'cellClicked',
+			{
+				detail: {
+					row: this.row,
+					col: this.col,
+				}
+			});
+		this.el[0].dispatchEvent(this.clickEv);
 	}
 
 	/*

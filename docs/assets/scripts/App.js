@@ -10,6 +10,10 @@ $(document).ready(function(){
 		$('.root').append(sheet.el);
 	});
 
+	$('.changeFont').click(function(){
+		sheet.changeFont($(this).attr('id'));
+	});
+
 });
 
 
